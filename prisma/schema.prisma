@@ -16,141 +16,146 @@ datasource db {
 
 // core
 model User {
-  id                 String         @id @default(cuid())
-  email              String         @unique
-  displayName        String?
-  photoUrl           String?
-  createdAt          DateTime       @default(now())
-  couples            CoupleMember[]
-  kudos              Kudos[]
-  notes              Note[]
-  messagesSent       Message[]      @relation("messages_sent")
-  messagesRecv       Message[]      @relation("messages_recv")
-  profile            UserProfile?   @relation(fields: [userProfileUserId], references: [userId])
-  settings           UserSettings?  @relation(fields: [userSettingsUserId], references: [userId])
-  userProfileUserId  String?
-  userSettingsUserId String?
-  Message            Message[]
+  id           String           @id @default(cuid())
+  email        String           @unique
+  displayName  String?
+  photoUrl     String?
+  createdAt    DateTime         @default(now())
+  couples      CoupleMember[]
+  kudosSent    Kudos[]          @relation("kudos_from")
+  kudosRecv    Kudos[]          @relation("kudos_to")
+  notes        Note[]           @relation("note_author")
+  messagesSent Message[]        @relation("messages_sent")
+  messagesRecv Message[]        @relation("messages_recv")
+  profile      UserProfile?
+  settings     UserSettings?
+  redemptions  Redemption[]
 }
 
 model UserProfile {
-  userId        String    @id
+  userId        String   @id
   birthday      DateTime?
-  favorites     Json? // { foods:[], music:[], places:[], activities:[], snacks:[], drinks:[] }
-  dislikes      Json? // { foods:[], ingredients:[], topics:[], triggers:[] }
-  allergies     String[] // food/med allergies/intolerances
-  loveLanguages String[] // ["words","quality_time","acts","gifts","touch"]
+  favorites     Json?
+  dislikes      Json?
+  allergies     String[]
+  loveLanguages String[]
   hobbies       String[]
-  noGoList      String[] // boundaries / hard no’s
+  noGoList      String[]
   aboutMe       String?
-  User          User[]
+  user          User     @relation(fields: [userId], references: [id])
 }
 
 model UserSettings {
   userId        String  @id
   timezone      String? @default("America/Argentina/Buenos_Aires")
   expoPushToken String?
-  dndStart      String? // "22:00"
-  dndEnd        String? // "08:00"
-  reminderPrefs Json? // { birthdays:true, checkin: "20:00", quests:true }
-  User          User[]
+  dndStart      String?
+  dndEnd        String?
+  reminderPrefs Json?
+  user          User    @relation(fields: [userId], references: [id])
 }
 
 model FamilyMember {
-  id        String    @id @default(cuid())
-  userId    String // owner (whose family this is)
+  id        String   @id @default(cuid())
+  userId    String
   name      String
-  relation  String // mom, dad, sister, best_friend, etc.
+  relation  String
   birthday  DateTime?
   notes     String?
-  remind    Boolean   @default(true)
+  remind    Boolean  @default(true)
   giftIdeas String[]
-  createdAt DateTime  @default(now())
+  createdAt DateTime @default(now())
 }
 
 model ImportantDate {
   id       String   @id @default(cuid())
   coupleId String
-  kind     String // dating_anniv | wedding_anniv | first_kiss | custom
+  kind     String
   date     DateTime
   notes    String?
   remind   Boolean  @default(true)
-  Couple   Couple   @relation(fields: [coupleId], references: [id])
+  couple   Couple   @relation(fields: [coupleId], references: [id])
 }
 
 model Couple {
-  id                  String          @id @default(cuid())
-  createdAt           DateTime        @default(now())
-  code                String          @unique // invite code
-  members             CoupleMember[]
-  stats               CoupleStats?    @relation(fields: [coupleStatsCoupleId], references: [coupleId])
-  quests              Quest[]
-  ledger              PointsLedger[]
-  achievements        Achievement[]
-  important           ImportantDate[]
-  coupleStatsCoupleId String?
+  id           String           @id @default(cuid())
+  createdAt    DateTime         @default(now())
+  code         String           @unique
+  members      CoupleMember[]
+  stats        CoupleStats?
+  quests       Quest[]
+  ledger       PointsLedger[]
+  achievements Achievement[]
+  important    ImportantDate[]
+  notes        Note[]           @relation("note_couple")
+  messages     Message[]
+  kudos        Kudos[]
+  rewards      Reward[]
+  redemptions  Redemption[]
 }
 
 model CoupleMember {
   id       String   @id @default(cuid())
   coupleId String
   userId   String
-  role     String   @default("partner") // future admin tools
+  role     String   @default("partner")
   joinedAt DateTime @default(now())
-  User     User     @relation(fields: [userId], references: [id])
-  Couple   Couple   @relation(fields: [coupleId], references: [id])
+  user     User     @relation(fields: [userId], references: [id])
+  couple   Couple   @relation(fields: [coupleId], references: [id])
 
   @@unique([coupleId, userId])
 }
 
 // gamification
 model CoupleStats {
-  coupleId   String   @id
-  level      Int      @default(1)
-  xp         Int      @default(0)
-  hearts     Int      @default(0)
-  dayStreak  Int      @default(0)
-  weekStreak Int      @default(0)
-  affinity   Int      @default(0) // 0..100
-  Couple     Couple[]
+  coupleId   String @id
+  level      Int    @default(1)
+  xp         Int    @default(0)
+  hearts     Int    @default(0)
+  dayStreak  Int    @default(0)
+  weekStreak Int    @default(0)
+  affinity   Int    @default(0)
+  couple     Couple @relation(fields: [coupleId], references: [id])
 }
 
 model PointsLedger {
   id        String   @id @default(cuid())
   coupleId  String
-  type      String // XP|HEART|AFFINITY
+  type      String
   amount    Int
-  reason    String // quest:kudos:checkin:achievement
-  createdBy String // userId
+  reason    String
+  createdBy String
   createdAt DateTime @default(now())
-  Couple    Couple   @relation(fields: [coupleId], references: [id])
+  couple    Couple   @relation(fields: [coupleId], references: [id])
 }
 
 model Quest {
-  id              String   @id @default(cuid())
+  id              String       @id @default(cuid())
   coupleId        String
   title           String
   description     String?
-  schedule        String? // cron-ish or ISO repeat rule
-  assignedTo      String? // userId or "both"
-  xpReward        Int      @default(10)
-  heartReward     Int      @default(1)
-  requiresConfirm Boolean  @default(true)
-  isActive        Boolean  @default(true)
-  createdAt       DateTime @default(now())
-  Couple          Couple   @relation(fields: [coupleId], references: [id])
+  schedule        String?
+  assignedTo      String?
+  xpReward        Int          @default(10)
+  heartReward     Int          @default(1)
+  requiresConfirm Boolean      @default(true)
+  isActive        Boolean      @default(true)
+  createdAt       DateTime     @default(now())
+  couple          Couple       @relation(fields: [coupleId], references: [id])
+  entries         QuestEntry[]
 }
 
 model QuestEntry {
   id          String    @id @default(cuid())
   questId     String
-  doneBy      String // userId
+  doneBy      String
   note        String?
   photoUrl    String?
-  status      String    @default("pending") // pending|confirmed|rejected
+  status      String    @default("pending")
   createdAt   DateTime  @default(now())
   confirmedBy String?
   confirmedAt DateTime?
+  quest       Quest     @relation(fields: [questId], references: [id])
 }
 
 model Kudos {
@@ -161,8 +166,9 @@ model Kudos {
   text      String
   tags      String[]
   createdAt DateTime @default(now())
-  User      User?    @relation(fields: [userId], references: [id])
-  userId    String?
+  couple    Couple   @relation(fields: [coupleId], references: [id])
+  from      User     @relation("kudos_from", fields: [fromId], references: [id])
+  to        User     @relation("kudos_to", fields: [toId], references: [id])
 }
 
 model Note {
@@ -172,8 +178,8 @@ model Note {
   text      String
   isPrivate Boolean  @default(false)
   createdAt DateTime @default(now())
-  User      User?    @relation(fields: [userId], references: [id])
-  userId    String?
+  couple    Couple   @relation("note_couple", fields: [coupleId], references: [id])
+  author    User     @relation("note_author", fields: [authorId], references: [id])
 }
 
 model Message {
@@ -181,11 +187,10 @@ model Message {
   coupleId  String
   fromId    String
   toId      String
-  kind      String   @default("ping") // ping|prompt|nudge
+  kind      String   @default("ping")
   text      String
   createdAt DateTime @default(now())
-  User      User?    @relation(fields: [userId], references: [id])
-  userId    String?
+  couple    Couple   @relation(fields: [coupleId], references: [id])
   from      User     @relation("messages_sent", fields: [fromId], references: [id])
   to        User     @relation("messages_recv", fields: [toId], references: [id])
 
@@ -195,9 +200,33 @@ model Message {
 model Achievement {
   id       String   @id @default(cuid())
   coupleId String
-  code     String   @unique // e.g., first_7_day_streak
+  code     String   @unique
   title    String
   details  String?
   earnedAt DateTime @default(now())
-  Couple   Couple   @relation(fields: [coupleId], references: [id])
+  couple   Couple   @relation(fields: [coupleId], references: [id])
+}
+
+model Reward {
+  id          String        @id @default(cuid())
+  coupleId    String
+  title       String
+  costHearts  Int
+  description String?
+  active      Boolean       @default(true)
+  createdAt   DateTime      @default(now())
+  couple      Couple        @relation(fields: [coupleId], references: [id])
+  redemptions Redemption[]
+}
+
+model Redemption {
+  id        String   @id @default(cuid())
+  coupleId  String
+  rewardId  String
+  claimedBy String
+  status    String   @default("pending")
+  createdAt DateTime @default(now())
+  couple    Couple   @relation(fields: [coupleId], references: [id])
+  reward    Reward   @relation(fields: [rewardId], references: [id])
+  claimer   User     @relation(fields: [claimedBy], references: [id])
 }
