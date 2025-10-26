@@ -1,12 +1,14 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
+import { requireUser } from "../auth/utils";
 
 export default async function loveBankRoutes(app: FastifyInstance) {
   app.get(
     "/love-bank/rewards",
     { preHandler: app.auth },
     async (req, reply) => {
-      const user = (req as any).user;
+      const user = requireUser(req, reply);
+      if (!user) return;
       const member = await app.prisma.coupleMember.findFirst({
         where: { userId: user.id },
       });
@@ -32,7 +34,8 @@ export default async function loveBankRoutes(app: FastifyInstance) {
     { preHandler: app.auth },
     async (req, reply) => {
       const body = RewardBody.parse(req.body ?? {});
-      const user = (req as any).user;
+      const user = requireUser(req, reply);
+      if (!user) return;
       const member = await app.prisma.coupleMember.findFirst({
         where: { userId: user.id },
       });
@@ -51,7 +54,8 @@ export default async function loveBankRoutes(app: FastifyInstance) {
     { preHandler: app.auth },
     async (req, reply) => {
       const { rewardId } = (req.body as any) ?? {};
-      const user = (req as any).user;
+      const user = requireUser(req, reply);
+      if (!user) return;
       const member = await app.prisma.coupleMember.findFirst({
         where: { userId: user.id },
       });
