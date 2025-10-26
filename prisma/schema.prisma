@@ -186,8 +186,8 @@ model Message {
   createdAt DateTime @default(now())
   User      User?    @relation(fields: [userId], references: [id])
   userId    String?
-  User      User?    @relation(fields: [userId], references: [id])
-  User      User?    @relation(fields: [userId], references: [id])
+  from      User     @relation("messages_sent", fields: [fromId], references: [id])
+  to        User     @relation("messages_recv", fields: [toId], references: [id])
 
   @@index([coupleId, toId, createdAt])
 }
