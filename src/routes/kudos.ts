@@ -1,5 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
+import { requireUser } from "../auth/utils";
 
 export default async function kudosRoutes(app: FastifyInstance) {
   app.get("/kudos", { preHandler: app.auth }, async (req, reply) => {
@@ -15,7 +16,8 @@ export default async function kudosRoutes(app: FastifyInstance) {
   });
   app.post("/kudos", { preHandler: app.auth }, async (req, reply) => {
     const { toId, text, tags } = Body.parse(req.body ?? {});
-    const user = (req as any).user;
+    const user = requireUser(req, reply);
+    if (!user) return;
     const member = await app.prisma.coupleMember.findFirst({
       where: { userId: user.id },
     });

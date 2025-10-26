@@ -1,6 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { Prisma } from "@prisma/client";
 import { z } from "zod";
+import { requireUser } from "../auth/utils";
 
 const Profile = z.object({
   birthday: z.string().datetime().nullish(),
@@ -15,7 +16,8 @@ const Profile = z.object({
 
 export default async function profileRoutes(app: FastifyInstance) {
   app.get("/profiles/me", { preHandler: app.auth }, async (req, reply) => {
-    const user = (req as any).user;
+    const user = requireUser(req, reply);
+    if (!user) return;
     const profile = await app.prisma.userProfile.findUnique({
       where: { userId: user.id },
     });
@@ -39,7 +41,8 @@ export default async function profileRoutes(app: FastifyInstance) {
       noGoList: data.noGoList,
       aboutMe: data.aboutMe ?? null,
     };
-    const user = (req as any).user;
+    const user = requireUser(req, reply);
+    if (!user) return;
     const saved = await app.prisma.userProfile.upsert({
       where: { userId: user.id },
       update: payload,

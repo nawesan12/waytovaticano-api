@@ -1,9 +1,11 @@
 import type { FastifyInstance } from "fastify";
+import { requireUser } from "../auth/utils";
 import { encodeCursor, decodeCursor } from "../utils/pagination";
 
 export default async function messageRoutes(app: FastifyInstance) {
   app.get("/messages", { preHandler: app.auth }, async (req, reply) => {
-    const user = (req as any).user;
+    const user = requireUser(req, reply);
+    if (!user) return;
     const member = await app.prisma.coupleMember.findFirst({
       where: { userId: user.id },
     });
@@ -41,7 +43,8 @@ export default async function messageRoutes(app: FastifyInstance) {
   });
 
   app.post("/messages", { preHandler: app.auth }, async (req, reply) => {
-    const user = (req as any).user;
+    const user = requireUser(req, reply);
+    if (!user) return;
     const { toId, kind = "ping", text, push = true } = (req.body as any) ?? {};
     const member = await app.prisma.coupleMember.findFirst({
       where: { userId: user.id },
