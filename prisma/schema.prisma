@@ -88,6 +88,7 @@ model Couple {
   ledger              PointsLedger[]
   achievements        Achievement[]
   important           ImportantDate[]
+  redemptions         Redemption[]
   coupleStatsCoupleId String?
 }
 
@@ -151,6 +152,28 @@ model QuestEntry {
   createdAt   DateTime  @default(now())
   confirmedBy String?
   confirmedAt DateTime?
+}
+
+model Reward {
+  id          String        @id @default(cuid())
+  title       String
+  costHearts  Int
+  description String?
+  active      Boolean       @default(true)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  redemptions Redemption[]
+}
+
+model Redemption {
+  id        String   @id @default(cuid())
+  rewardId  String
+  coupleId  String
+  claimedBy String
+  status    String   @default("pending")
+  createdAt DateTime @default(now())
+  Reward    Reward   @relation(fields: [rewardId], references: [id])
+  Couple    Couple   @relation(fields: [coupleId], references: [id])
 }
 
 model Kudos {

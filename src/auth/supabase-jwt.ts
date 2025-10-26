@@ -18,7 +18,7 @@ export async function authHook(req: FastifyRequest, reply: FastifyReply) {
       issuer: env.SUPABASE_JWT_ISSUER,
       audience: env.SUPABASE_JWT_AUDIENCE,
     });
-    (req as any).user = {
+    req.user = {
       id: String(payload.sub),
       email: String(payload.email ?? ""),
     };

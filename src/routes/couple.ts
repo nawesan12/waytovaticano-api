@@ -7,7 +7,7 @@ export default async function coupleRoutes(app: FastifyInstance) {
   });
   app.post("/couple", { preHandler: app.auth }, async (req, reply) => {
     const { inviteCode } = createBody.parse(req.body ?? {});
-    const user = (req as any).user;
+    const user = req.user!;
     const existing = await app.prisma.coupleMember.findFirst({
       where: { userId: user.id },
     });
@@ -26,7 +26,7 @@ export default async function coupleRoutes(app: FastifyInstance) {
   const joinBody = z.object({ code: z.string().min(4) });
   app.post("/couple/join", { preHandler: app.auth }, async (req, reply) => {
     const { code } = joinBody.parse(req.body ?? {});
-    const user = (req as any).user;
+    const user = req.user!;
     const exists = await app.prisma.couple.findUnique({ where: { code } });
     if (!exists)
       return reply

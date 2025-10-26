@@ -15,7 +15,7 @@ export default async function kudosRoutes(app: FastifyInstance) {
   });
   app.post("/kudos", { preHandler: app.auth }, async (req, reply) => {
     const { toId, text, tags } = Body.parse(req.body ?? {});
-    const user = (req as any).user;
+    const user = req.user!;
     const member = await app.prisma.coupleMember.findFirst({
       where: { userId: user.id },
     });

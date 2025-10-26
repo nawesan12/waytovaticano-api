@@ -18,14 +18,14 @@ import * as gamification from "./services/gamification";
 const app = Fastify({ logger: true });
 
 // Decorators (DI-lite)
-app.decorate("prisma", prisma);
+app.decorate("prisma", db);
 app.decorate("auth", authHook);
 app.decorate("services", { confirmQuestEntry: gamification.confirmQuestEntry });
 
 await app.register(sensible);
 await app.register(cors, { origin: true });
 await app.register(swagger, {
-  openapi: { info: { title: "Couple RPG API", version: "1.0.0" } },
+  openapi: { info: { title: "Way to Vaticano API", version: "1.0.0" } },
 });
 await app.register(swaggerUI, { routePrefix: "/docs" });
 
