@@ -53,6 +53,22 @@ export default async function coupleRoutes(app: FastifyInstance) {
     { preHandler: app.auth },
     async (req, reply) => {
       const { coupleId } = req.params as any;
+      const user = requireUser(req, reply);
+      if (!user) return;
+      const member = await app.prisma.coupleMember.findFirst({
+        where: { userId: user.id },
+      });
+      if (!member)
+        return reply
+          .code(409)
+          .send({ error: "conflict", message: "Not in a couple" });
+      if (member.coupleId !== coupleId)
+        return reply
+          .code(403)
+          .send({
+            error: "forbidden",
+            message: "Cannot view another couple's stats",
+          });
       const stats = await app.prisma.coupleStats.findUnique({
         where: { coupleId },
       });

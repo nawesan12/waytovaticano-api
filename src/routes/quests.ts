@@ -4,8 +4,17 @@ import { requireUser } from "../auth/utils";
 
 export default async function questRoutes(app: FastifyInstance) {
   app.get("/quests", { preHandler: app.auth }, async (req, reply) => {
+    const user = requireUser(req, reply);
+    if (!user) return;
+    const member = await app.prisma.coupleMember.findFirst({
+      where: { userId: user.id },
+    });
+    if (!member)
+      return reply
+        .code(409)
+        .send({ error: "conflict", message: "Not in a couple" });
     const items = await app.prisma.quest.findMany({
-      where: { isActive: true },
+      where: { coupleId: member.coupleId, isActive: true },
     });
     return reply.send(items);
   });
@@ -23,7 +32,26 @@ export default async function questRoutes(app: FastifyInstance) {
 
   app.post("/quests", { preHandler: app.auth }, async (req, reply) => {
     const body = QuestBody.parse(req.body ?? {});
-    const q = await app.prisma.quest.create({ data: body });
+    const user = requireUser(req, reply);
+    if (!user) return;
+    const member = await app.prisma.coupleMember.findFirst({
+      where: { userId: user.id },
+    });
+    if (!member)
+      return reply
+        .code(409)
+        .send({ error: "conflict", message: "Not in a couple" });
+    if (member.coupleId !== body.coupleId)
+      return reply
+        .code(403)
+        .send({
+          error: "forbidden",
+          message: "Cannot create quests for another couple",
+        });
+    const { coupleId, ...questData } = body;
+    const q = await app.prisma.quest.create({
+      data: { ...questData, coupleId: member.coupleId },
+    });
     return reply.code(201).send(q);
   });
 
@@ -35,8 +63,20 @@ export default async function questRoutes(app: FastifyInstance) {
       const { note, photoUrl } = (req.body as any) ?? {};
       const user = requireUser(req, reply);
       if (!user) return;
+      const member = await app.prisma.coupleMember.findFirst({
+        where: { userId: user.id },
+      });
+      if (!member)
+        return reply
+          .code(409)
+          .send({ error: "conflict", message: "Not in a couple" });
+      const quest = await app.prisma.quest.findUnique({ where: { id: questId } });
+      if (!quest || quest.coupleId !== member.coupleId)
+        return reply
+          .code(404)
+          .send({ error: "not_found", message: "Quest" });
       const entry = await app.prisma.questEntry.create({
-        data: { questId, doneBy: user.id, note, photoUrl },
+        data: { questId: quest.id, doneBy: user.id, note, photoUrl },
       });
       return reply.code(201).send(entry);
     },

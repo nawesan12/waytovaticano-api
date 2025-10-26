@@ -8,8 +8,8 @@ export function requireUser(
   const user = req.user ?? null;
   if (!user) {
     reply
-      .code(500)
-      .send({ error: "server_error", message: "Missing user context" });
+      .code(401)
+      .send({ error: "unauthorized", message: "Missing user context" });
     return null;
   }
   return user;
