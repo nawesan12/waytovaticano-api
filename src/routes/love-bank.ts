@@ -6,7 +6,10 @@ export default async function loveBankRoutes(app: FastifyInstance) {
     "/love-bank/rewards",
     { preHandler: app.auth },
     async (req, reply) => {
-      const rewards = await app.prisma.reward.findMany();
+      const rewards = await app.prisma.reward.findMany({
+        where: { active: true },
+        orderBy: { createdAt: "desc" },
+      });
       reply.send(rewards);
     },
   );
@@ -37,7 +40,7 @@ export default async function loveBankRoutes(app: FastifyInstance) {
         return reply.code(404).send({ error: "not_found", message: "Reward" });
       // Minimal spend check: ensure hearts >= cost
       const member = await app.prisma.coupleMember.findFirst({
-        where: { userId: (req as any).user.id },
+        where: { userId: req.user.id },
       });
       if (!member)
         return reply
@@ -57,7 +60,8 @@ export default async function loveBankRoutes(app: FastifyInstance) {
       const redemption = await app.prisma.redemption.create({
         data: {
           rewardId: reward.id,
-          claimedBy: (req as any).user.id,
+          coupleId: member.coupleId,
+          claimedBy: req.user.id,
           status: "pending",
         },
       });

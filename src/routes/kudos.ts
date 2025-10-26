@@ -3,7 +3,16 @@ import { z } from "zod";
 
 export default async function kudosRoutes(app: FastifyInstance) {
   app.get("/kudos", { preHandler: app.auth }, async (req, reply) => {
+    const user = req.user;
+    const member = await app.prisma.coupleMember.findFirst({
+      where: { userId: user.id },
+    });
+    if (!member)
+      return reply
+        .code(409)
+        .send({ error: "conflict", message: "Not in a couple" });
     const items = await app.prisma.kudos.findMany({
+      where: { coupleId: member.coupleId },
       orderBy: { createdAt: "desc" },
     });
     return reply.send(items);
@@ -15,7 +24,7 @@ export default async function kudosRoutes(app: FastifyInstance) {
   });
   app.post("/kudos", { preHandler: app.auth }, async (req, reply) => {
     const { toId, text, tags } = Body.parse(req.body ?? {});
-    const user = (req as any).user;
+    const user = req.user;
     const member = await app.prisma.coupleMember.findFirst({
       where: { userId: user.id },
     });

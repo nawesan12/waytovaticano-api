@@ -5,11 +5,11 @@ export async function confirmQuestEntry(entryId: string, confirmerId: string) {
   return await db.$transaction(async (tx) => {
     const entry = await tx.questEntry.findUnique({
       where: { id: entryId },
-      include: { quest: true },
+      include: { Quest: true },
     });
     if (!entry) throw new Error("Entry not found");
     if (entry.status !== "pending") return entry; // idempotent
-    const quest = entry.quest;
+    const quest = entry.Quest;
     const couple = await tx.couple.findUnique({
       where: { id: quest.coupleId },
       include: { members: true },

@@ -32,7 +32,7 @@ export default async function questRoutes(app: FastifyInstance) {
     async (req, reply) => {
       const { questId } = req.params as any;
       const { note, photoUrl } = (req.body as any) ?? {};
-      const user = (req as any).user;
+      const user = req.user;
       const entry = await app.prisma.questEntry.create({
         data: { questId, doneBy: user.id, note, photoUrl },
       });
@@ -45,7 +45,7 @@ export default async function questRoutes(app: FastifyInstance) {
     { preHandler: app.auth },
     async (req, reply) => {
       const { entryId } = req.params as any;
-      const user = (req as any).user;
+      const user = req.user;
       const entry = await app.services.confirmQuestEntry(entryId, user.id);
       const quest = await app.prisma.quest.findUnique({
         where: { id: entry.questId },

@@ -3,29 +3,36 @@ import { encodeCursor, decodeCursor } from "../utils/pagination";
 
 export default async function messageRoutes(app: FastifyInstance) {
   app.get("/messages", { preHandler: app.auth }, async (req, reply) => {
-    const cur = decodeCursor<{ createdAt: string }>((req.query as any).cursor);
+    const user = req.user;
+    const member = await app.prisma.coupleMember.findFirst({
+      where: { userId: user.id },
+    });
+    if (!member)
+      return reply
+        .code(409)
+        .send({ error: "conflict", message: "Not in a couple" });
+
+    const cur = decodeCursor<{ id: string }>((req.query as any).cursor);
     const take = 25;
     const items = await app.prisma.message.findMany({
       take: take + 1,
-      where: {},
-      orderBy: { createdAt: "desc" },
-      ...(cur && { cursor: { createdAt: new Date(cur.createdAt) }, skip: 1 }),
+      where: { coupleId: member.coupleId },
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+      ...(cur && { cursor: { id: cur.id }, skip: 1 }),
     });
     const hasMore = items.length > take;
     const page = items.slice(0, take);
     return reply.send({
       items: page,
       meta: {
-        nextCursor: hasMore
-          ? encodeCursor({ createdAt: page.at(-1)!.createdAt })
-          : null,
+        nextCursor: hasMore ? encodeCursor({ id: page.at(-1)!.id }) : null,
       },
     });
   });
 
   app.post("/messages", { preHandler: app.auth }, async (req, reply) => {
-    const user = (req as any).user;
-    const { toId, kind = "ping", text, push = true } = (req.body as any) ?? {};
+    const user = req.user;
+    const { toId, kind = "ping", text } = (req.body as any) ?? {};
     const member = await app.prisma.coupleMember.findFirst({
       where: { userId: user.id },
     });
@@ -36,7 +43,6 @@ export default async function messageRoutes(app: FastifyInstance) {
     const msg = await app.prisma.message.create({
       data: { coupleId: member.coupleId, fromId: user.id, toId, kind, text },
     });
-    // TODO: enqueue Expo push (optional)
     return reply.code(201).send(msg);
   });
 }

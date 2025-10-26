@@ -1,4 +1,5 @@
 import type { FastifyInstance } from "fastify";
+import { Prisma } from "@prisma/client";
 import { z } from "zod";
 
 const Profile = z.object({
@@ -14,7 +15,7 @@ const Profile = z.object({
 
 export default async function profileRoutes(app: FastifyInstance) {
   app.get("/profiles/me", { preHandler: app.auth }, async (req, reply) => {
-    const user = (req as any).user;
+    const user = req.user;
     const profile = await app.prisma.userProfile.findUnique({
       where: { userId: user.id },
     });
@@ -23,11 +24,21 @@ export default async function profileRoutes(app: FastifyInstance) {
 
   app.put("/profiles/me", { preHandler: app.auth }, async (req, reply) => {
     const data = Profile.parse(req.body ?? {});
-    const user = (req as any).user;
+    const user = req.user;
+    const toJson = (value: unknown) => {
+      if (value === undefined) return undefined;
+      if (value === null) return Prisma.JsonNull;
+      return value as Prisma.InputJsonValue;
+    };
+    const payload = {
+      ...data,
+      favorites: toJson(data.favorites),
+      dislikes: toJson(data.dislikes),
+    };
     const saved = await app.prisma.userProfile.upsert({
       where: { userId: user.id },
-      update: data,
-      create: { userId: user.id, ...data },
+      update: payload,
+      create: { userId: user.id, ...payload },
     });
     return reply.send(saved);
   });
