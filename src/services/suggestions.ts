@@ -5,9 +5,12 @@ export async function getSuggestions(coupleId: string) {
     include: { members: { include: { user: { include: { profile: true } } } } },
   });
   const favs =
-    couple?.members
-      .flatMap((m) => Object.values((m.user.profile?.favorites as any) ?? {}))
-      .flat() ?? [];
+    couple?.members.flatMap((member) => {
+      const favorites = member.user.profile?.favorites;
+      if (!favorites || typeof favorites !== "object" || Array.isArray(favorites))
+        return [];
+      return Object.values(favorites as Record<string, unknown>);
+    }) ?? [];
   const ideas = [] as {
     title: string;
     xpReward: number;

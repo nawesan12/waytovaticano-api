@@ -6,7 +6,18 @@ export default async function loveBankRoutes(app: FastifyInstance) {
     "/love-bank/rewards",
     { preHandler: app.auth },
     async (req, reply) => {
-      const rewards = await app.prisma.reward.findMany();
+      const user = (req as any).user;
+      const member = await app.prisma.coupleMember.findFirst({
+        where: { userId: user.id },
+      });
+      if (!member)
+        return reply
+          .code(409)
+          .send({ error: "conflict", message: "Not in a couple" });
+      const rewards = await app.prisma.reward.findMany({
+        where: { coupleId: member.coupleId, active: true },
+        orderBy: { createdAt: "asc" },
+      });
       reply.send(rewards);
     },
   );
@@ -21,7 +32,17 @@ export default async function loveBankRoutes(app: FastifyInstance) {
     { preHandler: app.auth },
     async (req, reply) => {
       const body = RewardBody.parse(req.body ?? {});
-      const reward = await app.prisma.reward.create({ data: body });
+      const user = (req as any).user;
+      const member = await app.prisma.coupleMember.findFirst({
+        where: { userId: user.id },
+      });
+      if (!member)
+        return reply
+          .code(409)
+          .send({ error: "conflict", message: "Not in a couple" });
+      const reward = await app.prisma.reward.create({
+        data: { ...body, coupleId: member.coupleId },
+      });
       reply.code(201).send(reward);
     },
   );
@@ -30,19 +51,20 @@ export default async function loveBankRoutes(app: FastifyInstance) {
     { preHandler: app.auth },
     async (req, reply) => {
       const { rewardId } = (req.body as any) ?? {};
-      const reward = await app.prisma.reward.findUnique({
-        where: { id: rewardId },
-      });
-      if (!reward)
-        return reply.code(404).send({ error: "not_found", message: "Reward" });
-      // Minimal spend check: ensure hearts >= cost
+      const user = (req as any).user;
       const member = await app.prisma.coupleMember.findFirst({
-        where: { userId: (req as any).user.id },
+        where: { userId: user.id },
       });
       if (!member)
         return reply
           .code(409)
           .send({ error: "conflict", message: "Not in a couple" });
+      const reward = await app.prisma.reward.findFirst({
+        where: { id: rewardId, coupleId: member.coupleId, active: true },
+      });
+      if (!reward)
+        return reply.code(404).send({ error: "not_found", message: "Reward" });
+      // Minimal spend check: ensure hearts >= cost
       const stats = await app.prisma.coupleStats.findUnique({
         where: { coupleId: member.coupleId },
       });
@@ -56,8 +78,9 @@ export default async function loveBankRoutes(app: FastifyInstance) {
       });
       const redemption = await app.prisma.redemption.create({
         data: {
+          coupleId: member.coupleId,
           rewardId: reward.id,
-          claimedBy: (req as any).user.id,
+          claimedBy: user.id,
           status: "pending",
         },
       });

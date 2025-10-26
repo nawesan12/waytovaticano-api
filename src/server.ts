@@ -18,7 +18,7 @@ import * as gamification from "./services/gamification";
 const app = Fastify({ logger: true });
 
 // Decorators (DI-lite)
-app.decorate("prisma", prisma);
+app.decorate("prisma", db);
 app.decorate("auth", authHook);
 app.decorate("services", { confirmQuestEntry: gamification.confirmQuestEntry });
 
