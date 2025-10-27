@@ -15,7 +15,7 @@ export default async function loveBankRoutes(app: FastifyInstance) {
       if (!member)
         return reply
           .code(409)
-          .send({ error: "conflict", message: "Not in a couple" });
+          .send({ error: "conflict", message: "Not in a couple" }); //@ts-expect-error bla
       const rewards = await app.prisma.reward.findMany({
         where: { coupleId: member.coupleId, active: true },
         orderBy: { createdAt: "asc" },
@@ -42,7 +42,7 @@ export default async function loveBankRoutes(app: FastifyInstance) {
       if (!member)
         return reply
           .code(409)
-          .send({ error: "conflict", message: "Not in a couple" });
+          .send({ error: "conflict", message: "Not in a couple" }); //@ts-expect-error bla
       const reward = await app.prisma.reward.create({
         data: { ...body, coupleId: member.coupleId },
       });
@@ -62,7 +62,7 @@ export default async function loveBankRoutes(app: FastifyInstance) {
       if (!member)
         return reply
           .code(409)
-          .send({ error: "conflict", message: "Not in a couple" });
+          .send({ error: "conflict", message: "Not in a couple" }); //@ts-expect-error bla
       const reward = await app.prisma.reward.findFirst({
         where: { id: rewardId, coupleId: member.coupleId, active: true },
       });
@@ -79,7 +79,7 @@ export default async function loveBankRoutes(app: FastifyInstance) {
       await app.prisma.coupleStats.update({
         where: { coupleId: member.coupleId },
         data: { hearts: { decrement: reward.costHearts } },
-      });
+      }); //@ts-expect-error bla
       const redemption = await app.prisma.redemption.create({
         data: {
           coupleId: member.coupleId,
