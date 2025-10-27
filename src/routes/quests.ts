@@ -1,3 +1,4 @@
+import type { Prisma } from "@prisma/client";
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { requireUser } from "../auth/utils";
@@ -48,9 +49,28 @@ export default async function questRoutes(app: FastifyInstance) {
           error: "forbidden",
           message: "Cannot create quests for another couple",
         });
-    const { coupleId, ...questData } = body;
+    const { coupleId, ...questPayload } = body;
+    const {
+      title,
+      description,
+      schedule,
+      assignedTo,
+      xpReward,
+      heartReward,
+      requiresConfirm,
+    } = questPayload;
+    const questData: Prisma.QuestCreateInput = {
+      title,
+      description,
+      schedule,
+      assignedTo,
+      xpReward,
+      heartReward,
+      requiresConfirm,
+      couple: { connect: { id: member.coupleId } },
+    };
     const q = await app.prisma.quest.create({
-      data: { ...questData, coupleId: member.coupleId },
+      data: questData,
     });
     return reply.code(201).send(q);
   });

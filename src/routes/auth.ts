@@ -6,11 +6,11 @@ export default async function authRoutes(app: FastifyInstance) {
     const user = requireUser(req, reply);
     if (!user) return;
     const membership = await app.prisma.coupleMember.findFirst({
-      where: { userId: user.id }, //@ts-expect-error bla
+      where: { userId: user.id },
       include: { couple: true },
     });
     return reply.send({
-      user, //@ts-expect-error bla
+      user,
       couple: membership?.couple ?? null,
       membership: membership ? { role: membership.role } : null,
     });

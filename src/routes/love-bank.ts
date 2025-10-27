@@ -1,3 +1,4 @@
+import type { Prisma } from "@prisma/client";
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { requireUser } from "../auth/utils";
@@ -15,7 +16,7 @@ export default async function loveBankRoutes(app: FastifyInstance) {
       if (!member)
         return reply
           .code(409)
-          .send({ error: "conflict", message: "Not in a couple" }); //@ts-expect-error bla
+          .send({ error: "conflict", message: "Not in a couple" });
       const rewards = await app.prisma.reward.findMany({
         where: { coupleId: member.coupleId, active: true },
         orderBy: { createdAt: "asc" },
@@ -42,9 +43,17 @@ export default async function loveBankRoutes(app: FastifyInstance) {
       if (!member)
         return reply
           .code(409)
-          .send({ error: "conflict", message: "Not in a couple" }); //@ts-expect-error bla
+          .send({ error: "conflict", message: "Not in a couple" });
+      const { title, costHearts, description, active } = body;
+      const rewardData: Prisma.RewardCreateInput = {
+        title,
+        costHearts,
+        description,
+        active,
+        couple: { connect: { id: member.coupleId } },
+      };
       const reward = await app.prisma.reward.create({
-        data: { ...body, coupleId: member.coupleId },
+        data: rewardData,
       });
       reply.code(201).send(reward);
     },
@@ -62,7 +71,7 @@ export default async function loveBankRoutes(app: FastifyInstance) {
       if (!member)
         return reply
           .code(409)
-          .send({ error: "conflict", message: "Not in a couple" }); //@ts-expect-error bla
+          .send({ error: "conflict", message: "Not in a couple" });
       const reward = await app.prisma.reward.findFirst({
         where: { id: rewardId, coupleId: member.coupleId, active: true },
       });
@@ -79,7 +88,7 @@ export default async function loveBankRoutes(app: FastifyInstance) {
       await app.prisma.coupleStats.update({
         where: { coupleId: member.coupleId },
         data: { hearts: { decrement: reward.costHearts } },
-      }); //@ts-expect-error bla
+      });
       const redemption = await app.prisma.redemption.create({
         data: {
           coupleId: member.coupleId,
